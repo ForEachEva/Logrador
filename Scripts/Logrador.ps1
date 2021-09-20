@@ -48,18 +48,32 @@ enum LogradorLogMode{
 
 class Logrador { # like a dog, it retrieves what you throw 
     [LogradorLogMode]$LogMode
-    [AllowNull()][String]$Path
-    [AllowNull()][String]$EventLog
+    #[AllowNull()][String]$Path
+    #[AllowNull()][String]$EventLog
     hidden[hashtable]$Errorlevel
     $LogLevel = [LogradorErrorLevel]::Default
     [switch]$EchoHost
     
     # Constructors
-    Logrador([System.Enum]$LogMode,[string]$LogFilepath,[string]$EventLogName){
-        $this.LogMode = $LogMode
-        $this.Path = $logfilepath
-        $this.EventLog = $EventLogName               
+    Logrador(){
+        #$this.LogMode = #[LogradorLogMode]::File
+        #$this.Path = join-path -Path $(Get-Item -Path .\).FullName -ChildPath "Logrador.log"
+        $this.LogLevel = [LogradorErrorLevel]::Default
+        $this.EchoHost = $true
+        #$this.EventLog = $null
     }
+    Logrador([System.Enum]$LogMode = [LogradorLogMode]::EventLog){
+        $this.LogMode = $LogMode
+        #$this.Path = $null
+        $this.LogLevel = [LogradorErrorLevel]::Default
+        #$this.Path = $logfilepath
+        #$this.EventLog = $EventLogName               
+    }
+    # Logrador([System.Enum]$LogMode,[string]$LogFilepath,[string]$EventLogName ){
+    #     $this.LogMode = $LogMode
+    #     $this.Path = $logfilepath
+    #     $this.EventLog = $EventLogName               
+    # }
     # Hidden method used by all Write-methods to output to log / echo to host. 
     # hidden[void] AppendLog([string[]]$Message,[String]$Category){
     #     Write-Output "[$(get-date -UFormat "%D %T")][$Category]: $Message" | Out-file -LiteralPath $this.Path -Append 
@@ -72,6 +86,7 @@ class Logrador { # like a dog, it retrieves what you throw
     #         }
     #     }
     # }
+    # Early "hacky" to accomodate for event log writing (WIP)
     hidden[void] AppendLog([string[]]$Message,[System.Diagnostics.EventLogEntryType]$EventType){
         If($([LogradorLogMode]::File,[LogradorLogMode]::Both) -contains $this.LogMode){
             #$this.WriteFileLog
@@ -260,6 +275,39 @@ class Logrador { # like a dog, it retrieves what you throw
             }
         }
     }
+    # [void]GetEventLog(){
+    #     #$EventLog = Get-WinE
+    #     If([string]::IsNullOrWhiteSpace($this.EventLog)){
+    #         Write-Host -ForegroundColor Yellow "EventLog not configured!"
+    #     }
+    #     Else{
+    #         $EventLogSession = [System.Diagnostics.Eventing.Reader.EventLogSession]::new()
+    #         $EventLogHandler = [System.Diagnostics.Eventing.Reader.EventLogConfiguration]::new('Logrador',$EventLogSession)
+    #         $($EventLogHandler | Out-String) | %{Write-Host -ForegroundColor Cyan -Object $_ }
+    #         $PathType = [System.Diagnostics.Eventing.Reader.PathType]::LogName
+    #         $EventLogSession.GetLogInformation('Logrador',$PathType)
+    #         #[System.Diagnostics.Eventing.EventProvider]::new(
+    #         $Instance = [System.Diagnostics.EventInstance]::new([long]2000,[int]100,[System.Diagnostics.EventLogEntryType]::Error)
+    #         [System.Diagnostics.EventLog]::WriteEvent('Logrador',$Instance,$($error[0] | Out-String))
+    #         [System.Diagnostics.EventLog]::WriteEntry('Logrador','Test WriteEntry')
+    #     }
+    # }
+}
+
+# class FileLogger : Logrador {
+    
+# }
+
+class EventLogger : Logrador {
+    #[LogradorLogMode]$EventLogMode = [LogradorLogMode]::EventLog
+    [String]$EventLog
+
+    # Constructors
+    EventLogger([string]$EventLogName){
+        $this.LogMode = [LogradorLogMode]::EventLog
+        $this.EventLog = $EventLogName        
+    }
+    
     [void]GetEventLog(){
         #$EventLog = Get-WinE
         If([string]::IsNullOrWhiteSpace($this.EventLog)){
@@ -278,3 +326,6 @@ class Logrador { # like a dog, it retrieves what you throw
         }
     }
 }
+
+$Logrador = [Logrador]::new([LogradorLogMode]::Both)
+$EventLogger = [EventLogger]::new($([LogradorLogMode]::EventLog,"Logrador\Logrador"))
